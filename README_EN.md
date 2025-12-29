@@ -2,7 +2,7 @@
 
 English | [中文](./README.md)
 
-⚡️ A beautiful and powerful Swagger UI alternative, designed for Go Gin framework.
+⚡️ A beautiful and powerful Swagger UI alternative, supporting Gin, Fiber, Echo, Chi and other Go web frameworks.
 
 > Better API documentation experience for Go developers.
 
@@ -46,6 +46,7 @@ English | [中文](./README.md)
 - 📱 **Mobile Support** - Fully responsive with drawer navigation
 - 💾 **Persistent Settings** - Theme and settings auto-saved locally
 - ✨ **JSON Syntax Highlighting** - Colorful response display
+- 🔌 **Multi-Framework Support** - Native Gin support, other frameworks via standard http.Handler
 
 ## 🔄 Drop-in Replacement
 
@@ -395,6 +396,93 @@ swag init
 ## 🤝 Contributing
 
 Issues and Pull Requests are welcome!
+
+## 🔌 Other Framework Support
+
+Besides Gin, QingFeng Swag provides standard `http.Handler` for any Go web framework:
+
+### Fiber
+
+```go
+import (
+    "github.com/gofiber/fiber/v2"
+    "github.com/gofiber/fiber/v2/middleware/adaptor"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    app := fiber.New()
+    
+    app.Use("/doc", adaptor.HTTPHandler(qingfeng.HTTPHandler(qingfeng.Config{
+        Title:    "My API",
+        BasePath: "/doc",
+        DocPath:  "./docs/swagger.json",
+    })))
+    
+    app.Listen(":8080")
+}
+```
+
+### Echo
+
+```go
+import (
+    "github.com/labstack/echo/v4"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    e := echo.New()
+    
+    e.GET("/doc/*", echo.WrapHandler(qingfeng.HTTPHandler(qingfeng.Config{
+        Title:    "My API",
+        BasePath: "/doc",
+        DocPath:  "./docs/swagger.json",
+    })))
+    
+    e.Start(":8080")
+}
+```
+
+### Chi
+
+```go
+import (
+    "github.com/go-chi/chi/v5"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    r := chi.NewRouter()
+    
+    r.Handle("/doc/*", qingfeng.HTTPHandler(qingfeng.Config{
+        Title:    "My API",
+        BasePath: "/doc",
+        DocPath:  "./docs/swagger.json",
+    }))
+    
+    http.ListenAndServe(":8080", r)
+}
+```
+
+### Standard Library net/http
+
+```go
+import (
+    "net/http"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    http.Handle("/doc/", qingfeng.HTTPHandler(qingfeng.Config{
+        Title:    "My API",
+        BasePath: "/doc",
+        DocPath:  "./docs/swagger.json",
+    }))
+    
+    http.ListenAndServe(":8080", nil)
+}
+```
 
 ## 💬 Contact
 

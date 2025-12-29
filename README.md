@@ -2,7 +2,7 @@
 
 [English](./README_EN.md) | 中文
 
-⚡️ 一个美观、强大的 Swagger UI 替代方案，专为 Go Gin 框架设计。
+⚡️ 一个美观、强大的 Swagger UI 替代方案，支持 Gin、Fiber、Echo、Chi 等主流 Go Web 框架。
 
 > 为 Go 开发者提供更好的 API 文档体验。
 
@@ -46,6 +46,7 @@
 - 📱 **移动端适配** - 完美支持手机访问，侧边栏抽屉式交互
 - 💾 **设置持久化** - 主题、UI 风格、全局参数自动保存到本地
 - ✨ **JSON 语法高亮** - 响应结果彩色高亮显示
+- 🔌 **多框架支持** - 原生支持 Gin，其他框架可通过标准 http.Handler 适配
 
 ## 🔄 无侵入替换
 
@@ -443,6 +444,93 @@ swag init
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
+
+## 🔌 其他框架支持
+
+除了 Gin，青峰Swag 还提供标准 `http.Handler`，可适配任何 Go Web 框架：
+
+### Fiber
+
+```go
+import (
+    "github.com/gofiber/fiber/v2"
+    "github.com/gofiber/fiber/v2/middleware/adaptor"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    app := fiber.New()
+    
+    app.Use("/doc", adaptor.HTTPHandler(qingfeng.HTTPHandler(qingfeng.Config{
+        Title:    "我的 API",
+        BasePath: "/doc",
+        DocPath:  "./docs/swagger.json",
+    })))
+    
+    app.Listen(":8080")
+}
+```
+
+### Echo
+
+```go
+import (
+    "github.com/labstack/echo/v4"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    e := echo.New()
+    
+    e.GET("/doc/*", echo.WrapHandler(qingfeng.HTTPHandler(qingfeng.Config{
+        Title:    "我的 API",
+        BasePath: "/doc",
+        DocPath:  "./docs/swagger.json",
+    })))
+    
+    e.Start(":8080")
+}
+```
+
+### Chi
+
+```go
+import (
+    "github.com/go-chi/chi/v5"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    r := chi.NewRouter()
+    
+    r.Handle("/doc/*", qingfeng.HTTPHandler(qingfeng.Config{
+        Title:    "我的 API",
+        BasePath: "/doc",
+        DocPath:  "./docs/swagger.json",
+    }))
+    
+    http.ListenAndServe(":8080", r)
+}
+```
+
+### 标准库 net/http
+
+```go
+import (
+    "net/http"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    http.Handle("/doc/", qingfeng.HTTPHandler(qingfeng.Config{
+        Title:    "我的 API",
+        BasePath: "/doc",
+        DocPath:  "./docs/swagger.json",
+    }))
+    
+    http.ListenAndServe(":8080", nil)
+}
+```
 
 ## 💬 交流群
 

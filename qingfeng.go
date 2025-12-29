@@ -1,4 +1,4 @@
-// Package qingfeng provides a beautiful Swagger UI replacement for Go Gin framework
+// Package qingfeng provides a beautiful Swagger UI replacement for Go web frameworks
 // 青锋 - 青出于蓝，锋芒毕露
 package qingfeng
 
@@ -16,7 +16,7 @@ import (
 )
 
 // Version is the current version of QingFeng
-const Version = "1.5.0"
+const Version = "1.5.4"
 
 //go:embed ui/default/* ui/minimal/* ui/modern/* ui/assets/css/* ui/assets/webfonts/*
 var uiFS embed.FS
@@ -108,8 +108,31 @@ func DefaultConfig() Config {
 	}
 }
 
-// Handler returns a Gin handler group for knife4j UI
+// Handler returns a Gin handler for QingFeng UI
+// 返回 Gin 框架的 handler，内部调用 HTTPHandler
 func Handler(cfg Config) gin.HandlerFunc {
+	httpHandler := HTTPHandler(cfg)
+	
+	return func(c *gin.Context) {
+		httpHandler.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
+// RegisterRoutes registers QingFeng routes to a Gin router group
+func RegisterRoutes(router *gin.RouterGroup, cfg Config) {
+	handler := Handler(cfg)
+	router.GET("/*filepath", handler)
+}
+
+// HTTPHandler returns a standard http.Handler for use with any Go web framework
+// 返回标准 http.Handler，可用于任何 Go Web 框架
+// 
+// 使用示例:
+//   - 标准库: http.Handle("/doc/", qingfeng.HTTPHandler(cfg))
+//   - Echo: e.GET("/doc/*", echo.WrapHandler(qingfeng.HTTPHandler(cfg)))
+//   - Fiber: app.Use("/doc", adaptor.HTTPHandler(qingfeng.HTTPHandler(cfg)))
+//   - Chi: r.Handle("/doc/*", qingfeng.HTTPHandler(cfg))
+func HTTPHandler(cfg Config) http.Handler {
 	if cfg.BasePath == "" {
 		cfg.BasePath = "/doc"
 	}
@@ -143,77 +166,75 @@ func Handler(cfg Config) gin.HandlerFunc {
 
 	// Prepare config JSON for frontend
 	configJSON, _ := json.Marshal(map[string]interface{}{
-		"title":         cfg.Title,
-		"description":   cfg.Description,
-		"version":       cfg.Version,
-		"enableDebug":   cfg.EnableDebug,
-		"darkMode":      cfg.DarkMode,
-		"globalHeaders": cfg.GlobalHeaders,
-		"defaultTheme":  defaultTheme,
-		"themes":        []string{"default", "minimal", "modern"},
+		"title":           cfg.Title,
+		"description":     cfg.Description,
+		"version":         cfg.Version,
+		"enableDebug":     cfg.EnableDebug,
+		"darkMode":        cfg.DarkMode,
+		"globalHeaders":   cfg.GlobalHeaders,
+		"defaultTheme":    defaultTheme,
+		"themes":          []string{"default", "minimal", "modern"},
 		"qingfengVersion": Version,
-		"logo":          cfg.Logo,
-		"logoLink":      cfg.LogoLink,
-		"environments":  cfg.Environments,
+		"logo":            cfg.Logo,
+		"logoLink":        cfg.LogoLink,
+		"environments":    cfg.Environments,
 	})
 
-	return func(c *gin.Context) {
-		path := c.Request.URL.Path
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
 
 		// Remove base path prefix
 		if cfg.BasePath != "" && cfg.BasePath != "/" {
 			path = strings.TrimPrefix(path, cfg.BasePath)
 		}
+		if path == "" {
+			path = "/"
+		}
 
 		// Get theme from query parameter or use default
-		theme := c.Query("theme")
+		theme := r.URL.Query().Get("theme")
 		if theme == "" {
 			theme = defaultTheme
 		}
-		// Validate theme
 		if _, ok := fileServers[theme]; !ok {
 			theme = defaultTheme
 		}
 
 		// Serve swagger.json
 		if path == "/swagger.json" || path == "/api-docs" {
+			w.Header().Set("Content-Type", "application/json")
 			if cfg.DocJSON != nil {
-				c.Data(http.StatusOK, "application/json", cfg.DocJSON)
+				w.Write(cfg.DocJSON)
 				return
 			}
 			data, err := os.ReadFile(cfg.DocPath)
 			if err != nil {
-				c.JSON(http.StatusNotFound, gin.H{"error": "swagger.json not found"})
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte(`{"error": "swagger.json not found"}`))
 				return
 			}
-			c.Data(http.StatusOK, "application/json", data)
+			w.Write(data)
 			return
 		}
 
 		// Serve config
 		if path == "/config.json" {
-			c.Data(http.StatusOK, "application/json", configJSON)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(configJSON)
 			return
 		}
 
 		// Serve assets (CSS, fonts)
 		if strings.HasPrefix(path, "/assets/") {
-			assetPath := strings.TrimPrefix(path, "/assets/")
-			c.Request.URL.Path = "/" + assetPath
-			assetsServer.ServeHTTP(c.Writer, c.Request)
+			r.URL.Path = strings.TrimPrefix(path, "/assets")
+			assetsServer.ServeHTTP(w, r)
 			return
 		}
 
 		// Serve static files using selected theme
-		c.Request.URL.Path = path
-		fileServers[theme].ServeHTTP(c.Writer, c.Request)
-	}
-}
-
-// RegisterRoutes registers knife4j routes to a Gin router group
-func RegisterRoutes(router *gin.RouterGroup, cfg Config) {
-	handler := Handler(cfg)
-	router.GET("/*filepath", handler)
+		r.URL.Path = path
+		fileServers[theme].ServeHTTP(w, r)
+	})
 }
 
 // generateSwaggerDocs runs swag init to generate swagger documentation

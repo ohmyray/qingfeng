@@ -955,7 +955,7 @@ function renderBodyFieldInput(key, prop, value) {
     }
     
     if (type === 'boolean') {
-        return `<select class="input-field w-full rounded px-2 py-1.5 text-sm" data-body-field="${escapeHtml(key)}" onchange="onBodyFieldChange()">
+        return `<select class="input-field w-full rounded px-2 py-1.5 text-sm" data-body-field="${escapeHtml(key)}" data-type="boolean" onchange="onBodyFieldChange()">
             <option value="">-- 请选择 --</option>
             <option value="true" ${value === true || value === 'true' ? 'selected' : ''}>true</option>
             <option value="false" ${value === false || value === 'false' ? 'selected' : ''}>false</option>
@@ -1730,17 +1730,23 @@ async function sendRequest() {
     const queryParams = new URLSearchParams();
     const headers = {};
     let hasFileInput = false;
+    let hasFormDataParam = false;
     const formData = new FormData();
     
-    // 检查是否有文件输入
-    document.querySelectorAll('#debug-params-container input[data-type="file"]').forEach(input => {
-        if (input.files && input.files.length > 0) {
-            hasFileInput = true;
+    // 检查是否有文件输入或 formData 参数
+    document.querySelectorAll('#debug-params-container [data-param]').forEach(input => {
+        const location = input.dataset.in;
+        if (location === 'formData') {
+            hasFormDataParam = true;
+            if (input.dataset.type === 'file' && input.files && input.files.length > 0) {
+                hasFileInput = true;
+            }
         }
     });
     
-    // 如果没有文件，使用 JSON
-    if (!hasFileInput) {
+    // 如果有 formData 参数，使用 multipart/form-data（不设置 Content-Type，让浏览器自动设置）
+    // 否则使用 JSON
+    if (!hasFormDataParam) {
         headers['Content-Type'] = 'application/json';
     }
     
@@ -1780,8 +1786,8 @@ async function sendRequest() {
     let body = null;
     const bodyInput = document.getElementById('debug-body');
     
-    if (hasFileInput) {
-        // 使用 FormData 发送（包含文件）
+    if (hasFormDataParam) {
+        // 使用 FormData 发送
         body = formData;
     } else if (!document.getElementById('debug-body-container').classList.contains('hidden') && bodyInput.value) {
         body = bodyInput.value;

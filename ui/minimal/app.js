@@ -767,48 +767,61 @@ function renderDebugPanel(api, path) {
         container.innerHTML = nonBodyParams.map(p => {
             // 优先使用保存的值，其次使用参数的默认值
             const savedValue = savedData.params?.[p.name] !== undefined ? savedData.params[p.name] : (p.default !== undefined ? String(p.default) : '');
+            // 参数启用状态：默认必填参数启用，可选参数也启用
+            const isEnabled = savedData.paramEnabled?.[p.name] !== undefined ? savedData.paramEnabled[p.name] : true;
             const isFileParam = p.in === 'formData' && p.type === 'file';
             const paramType = p.type || 'string';
             return `
-            <div class="mb-3">
-                <label class="block text-sm font-medium mb-1">
-                    ${p.name} 
-                    <span class="text-xs px-1.5 py-0.5 rounded" style="background: var(--bg-tertiary)">${p.in}</span>
-                    <span class="text-xs px-1.5 py-0.5 rounded ml-1" style="background: var(--bg-tertiary)">${paramType}</span>
-                    ${isFileParam ? '<span class="text-xs px-1.5 py-0.5 rounded ml-1" style="background: var(--primary); color: white">file</span>' : ''}
-                    ${p.required ? '<span class="text-red-500">*</span>' : ''}
-                </label>
-                ${isFileParam ? `
-                <div class="file-input-wrapper">
-                    <input type="file" class="input-field w-full rounded-lg px-3 py-2 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:cursor-pointer" 
-                           data-param="${p.name}" data-in="${p.in}" data-type="file"
-                           ${p.description ? `title="${p.description}"` : ''}
-                           multiple
-                           onchange="updateFileList(this)">
-                    <div class="file-list mt-2 text-sm" style="color: var(--text-secondary)"></div>
+            <div class="mb-3 flex items-start gap-2">
+                <input type="checkbox" class="mt-2.5 w-4 h-4 cursor-pointer" 
+                       data-param-enable="${p.name}" 
+                       ${isEnabled ? 'checked' : ''}
+                       onchange="saveParamEnabled('${p.name}', this.checked)"
+                       title="${isEnabled ? '点击禁用此参数' : '点击启用此参数'}">
+                <div class="flex-1 ${isEnabled ? '' : 'opacity-50'}">
+                    <label class="block text-sm font-medium mb-1">
+                        ${p.name} 
+                        <span class="text-xs px-1.5 py-0.5 rounded" style="background: var(--bg-tertiary)">${p.in}</span>
+                        <span class="text-xs px-1.5 py-0.5 rounded ml-1" style="background: var(--bg-tertiary)">${paramType}</span>
+                        ${isFileParam ? '<span class="text-xs px-1.5 py-0.5 rounded ml-1" style="background: var(--primary); color: white">file</span>' : ''}
+                        ${p.required ? '<span class="text-red-500">*</span>' : ''}
+                    </label>
+                    ${isFileParam ? `
+                    <div class="file-input-wrapper">
+                        <input type="file" class="input-field w-full rounded-lg px-3 py-2 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:cursor-pointer" 
+                               data-param="${p.name}" data-in="${p.in}" data-type="file"
+                               ${p.description ? `title="${p.description}"` : ''}
+                               ${isEnabled ? '' : 'disabled'}
+                               multiple
+                               onchange="updateFileList(this)">
+                        <div class="file-list mt-2 text-sm" style="color: var(--text-secondary)"></div>
+                    </div>
+                    ` : p.enum ? `
+                    <select class="input-field w-full rounded-lg px-3 py-2" 
+                           data-param="${p.name}" data-in="${p.in}" data-type="${paramType}"
+                           ${isEnabled ? '' : 'disabled'}
+                           onchange="saveDebugParam('${p.name}', this.value)">
+                        <option value="">-- 请选择 --</option>
+                        ${p.enum.map(v => `<option value="${escapeHtml(String(v))}" ${String(v) === String(savedValue) ? 'selected' : ''}>${escapeHtml(String(v))}</option>`).join('')}
+                    </select>
+                    ` : paramType === 'boolean' ? `
+                    <select class="input-field w-full rounded-lg px-3 py-2" 
+                           data-param="${p.name}" data-in="${p.in}" data-type="${paramType}"
+                           ${isEnabled ? '' : 'disabled'}
+                           onchange="saveDebugParam('${p.name}', this.value)">
+                        <option value="">-- 请选择 --</option>
+                        <option value="true" ${savedValue === 'true' ? 'selected' : ''}>true</option>
+                        <option value="false" ${savedValue === 'false' ? 'selected' : ''}>false</option>
+                    </select>
+                    ` : `
+                    <input type="text" class="input-field w-full rounded-lg px-3 py-2" 
+                           data-param="${p.name}" data-in="${p.in}" data-type="${paramType}"
+                           placeholder="${p.description || p.name}"
+                           value="${escapeHtml(savedValue)}"
+                           ${isEnabled ? '' : 'disabled'}
+                           oninput="saveDebugParam('${p.name}', this.value)">
+                    `}
                 </div>
-                ` : p.enum ? `
-                <select class="input-field w-full rounded-lg px-3 py-2" 
-                       data-param="${p.name}" data-in="${p.in}" data-type="${paramType}"
-                       onchange="saveDebugParam('${p.name}', this.value)">
-                    <option value="">-- 请选择 --</option>
-                    ${p.enum.map(v => `<option value="${escapeHtml(String(v))}" ${String(v) === String(savedValue) ? 'selected' : ''}>${escapeHtml(String(v))}</option>`).join('')}
-                </select>
-                ` : paramType === 'boolean' ? `
-                <select class="input-field w-full rounded-lg px-3 py-2" 
-                       data-param="${p.name}" data-in="${p.in}" data-type="${paramType}"
-                       onchange="saveDebugParam('${p.name}', this.value)">
-                    <option value="">-- 请选择 --</option>
-                    <option value="true" ${savedValue === 'true' ? 'selected' : ''}>true</option>
-                    <option value="false" ${savedValue === 'false' ? 'selected' : ''}>false</option>
-                </select>
-                ` : `
-                <input type="text" class="input-field w-full rounded-lg px-3 py-2" 
-                       data-param="${p.name}" data-in="${p.in}" data-type="${paramType}"
-                       placeholder="${p.description || p.name}"
-                       value="${escapeHtml(savedValue)}"
-                       oninput="saveDebugParam('${p.name}', this.value)">
-                `}
             </div>
         `}).join('');
     } else {
@@ -1121,6 +1134,27 @@ function saveDebugParam(paramName, value) {
     const data = getDebugData(currentApi.path, currentApi.method);
     data.params[paramName] = value;
     saveDebugData(currentApi.path, currentApi.method, data);
+}
+
+function saveParamEnabled(paramName, enabled) {
+    if (!currentApi) return;
+    const data = getDebugData(currentApi.path, currentApi.method);
+    if (!data.paramEnabled) data.paramEnabled = {};
+    data.paramEnabled[paramName] = enabled;
+    saveDebugData(currentApi.path, currentApi.method, data);
+    
+    // 更新 UI 状态
+    const container = document.querySelector(`[data-param-enable="${paramName}"]`)?.closest('.flex');
+    if (container) {
+        const inputArea = container.querySelector('.flex-1');
+        if (inputArea) {
+            inputArea.classList.toggle('opacity-50', !enabled);
+        }
+        const input = container.querySelector(`[data-param="${paramName}"]`);
+        if (input) {
+            input.disabled = !enabled;
+        }
+    }
 }
 
 function saveDebugBody(value) {
@@ -1636,11 +1670,15 @@ function copyCurl() {
     });
     
     // 收集参数
-    document.querySelectorAll('#debug-params-container input').forEach(input => {
+    document.querySelectorAll('#debug-params-container input[data-param], #debug-params-container select[data-param]').forEach(input => {
         const name = input.dataset.param;
         const location = input.dataset.in;
         const isFile = input.dataset.type === 'file';
         const value = isFile ? null : input.value;
+        
+        // 检查参数是否启用
+        const enableCheckbox = document.querySelector(`[data-param-enable="${name}"]`);
+        if (enableCheckbox && !enableCheckbox.checked) return; // 跳过禁用的参数
         
         if (location === 'path') {
             if (value) url = url.replace(`{${name}}`, encodeURIComponent(value));
@@ -1756,11 +1794,15 @@ async function sendRequest() {
         }
     });
     
-    document.querySelectorAll('#debug-params-container input, #debug-params-container select').forEach(input => {
+    document.querySelectorAll('#debug-params-container input[data-param], #debug-params-container select[data-param]').forEach(input => {
         const name = input.dataset.param;
         const location = input.dataset.in;
         const isFile = input.dataset.type === 'file';
         const value = isFile ? null : input.value;
+        
+        // 检查参数是否启用
+        const enableCheckbox = document.querySelector(`[data-param-enable="${name}"]`);
+        if (enableCheckbox && !enableCheckbox.checked) return; // 跳过禁用的参数
         
         if (location === 'path') {
             if (value) url = url.replace(`{${name}}`, encodeURIComponent(value));

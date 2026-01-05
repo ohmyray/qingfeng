@@ -211,7 +211,7 @@ func HTTPHandler(cfg Config) http.Handler {
 		}
 
 		// Serve swagger.json
-		if path == "/swagger.json" || path == "/api-docs" {
+		if path == "/swagger.json" || path == "/api-docs" || path == "/doc.json" {
 			w.Header().Set("Content-Type", "application/json")
 			if cfg.DocJSON != nil {
 				w.Write(cfg.DocJSON)

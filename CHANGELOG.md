@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 禁用的参数显示半透明，输入框禁用
   - 勾选状态保存到 sessionStorage
   - cURL 生成也会跳过禁用的参数
+- 🔗 **新增 /doc.json 路径** - 支持通过 `/doc.json` 访问 swagger.json (PR #7 by @buyfakett)
 
 ### Fixed
 - 修复枚举参数默认值不显示问题（header/query/path/formData 参数）

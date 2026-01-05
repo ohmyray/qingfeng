@@ -12,10 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `nil`（不配置）→ 默认 true，存储参数
   - `&true` → 存储参数
   - `&false` → 不存储参数
+- ✅ **参数启用/禁用勾选** - 每个参数前添加勾选框，可控制是否发送该参数
+  - 禁用的参数显示半透明，输入框禁用
+  - 勾选状态保存到 sessionStorage
+  - cURL 生成也会跳过禁用的参数
 
 ### Fixed
 - 修复枚举参数默认值不显示问题（header/query/path/formData 参数）
 - 修复 body 字段的 default 默认值不生效问题
+- 修复表单模式布尔值被解析成字符串的问题
+- 修复带文件接口不上传文件时其他 formData 参数不发送的问题
 - 布尔类型参数自动渲染为下拉选择框（true/false），无需手动配置枚举
 
 ## [1.5.5] - 2024-12-30

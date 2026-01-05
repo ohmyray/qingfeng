@@ -232,6 +232,8 @@ func logout(c *gin.Context) {
 type NodeGroupRequest struct {
 	GroupName string `json:"group_name" example:"测试分组"`
 	RouteType int    `json:"route_type" example:"1" enums:"0,1"`
+	Enabled   bool   `json:"enabled" example:"true"`
+	AutoStart bool   `json:"auto_start" example:"false"`
 }
 
 // @Summary 创建节点分组

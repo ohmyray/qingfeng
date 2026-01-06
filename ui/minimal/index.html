@@ -57,6 +57,17 @@
         .method-patch { background: #8b5cf6; }
         .api-item:hover { background: var(--bg-tertiary); }
         .api-item.active { background: var(--bg-tertiary); border-left: 2px solid var(--primary); }
+        /* Fix hover text visibility for tag groups */
+        .tag-group > div:hover {
+            background: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+            font-weight: 500;
+        }
+        /* Fix hover text visibility for header buttons */
+        .desktop-header button:hover {
+            background: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
         .input-field {
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
@@ -190,6 +201,9 @@
                     <button onclick="openTokenExtractModal()" class="px-3 py-1.5 rounded text-sm border hover:bg-gray-50 dark:hover:bg-gray-800" style="border-color: var(--border)">
                         <i class="fas fa-magic mr-1"></i>Token
                         <span id="token-rules-count" class="ml-1 px-1 text-xs rounded bg-green-500 text-white hidden">0</span>
+                    </button>
+                    <button onclick="openUIThemeModal()" class="px-3 py-1.5 rounded text-sm border hover:bg-gray-50 dark:hover:bg-gray-800" style="border-color: var(--border)">
+                        <i class="fas fa-palette mr-1" style="color: var(--primary)"></i>主题
                     </button>
                 </div>
             </header>

@@ -70,6 +70,23 @@
         .api-item { border-radius: 12px; transition: all 0.2s; }
         .api-item:hover { background: var(--bg-tertiary); transform: translateX(4px); }
         .api-item.active { background: var(--bg-tertiary); border-left: 3px solid var(--primary); }
+        /* Fix hover text visibility for buttons and tag groups */
+        .sidebar button:hover,
+        .mobile-header button:hover,
+        .mobile-actions button:hover {
+            color: var(--text-primary) !important;
+        }
+        /* Fix hover text visibility for header buttons */
+        .desktop-header button:hover {
+            background: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
+        /* Fix hover text visibility for tag groups */
+        .tag-group > div:hover {
+            background: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+            font-weight: 500;
+        }
         .input-field {
             background: var(--bg-tertiary);
             border: 1px solid var(--border);

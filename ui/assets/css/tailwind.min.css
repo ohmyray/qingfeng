@@ -777,6 +777,10 @@ video {
   margin-top: 0.5rem;
 }
 
+.mt-2\.5 {
+  margin-top: 0.625rem;
+}
+
 .mt-3 {
   margin-top: 0.75rem;
 }
@@ -1089,6 +1093,10 @@ video {
 
 .border-dashed {
   border-style: dashed;
+}
+
+.border-none {
+  border-style: none;
 }
 
 .border-gray-300 {

@@ -90,6 +90,17 @@
             font-family: 'Fira Code', 'Monaco', monospace;
         }
         .tag-group { border-bottom: 1px solid var(--border); }
+        /* Fix hover text visibility for tag groups */
+        .tag-group > div:hover {
+            background: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+            font-weight: 500;
+        }
+        /* Fix hover text visibility for header buttons */
+        .desktop-header button:hover {
+            background: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
         .scrollbar-thin::-webkit-scrollbar { width: 6px; }
         .scrollbar-thin::-webkit-scrollbar-track { background: var(--bg-tertiary); }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }

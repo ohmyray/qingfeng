@@ -114,6 +114,11 @@
         .scrollbar-thin::-webkit-scrollbar { width: 6px; }
         .scrollbar-thin::-webkit-scrollbar-track { background: var(--bg-tertiary); }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        /* Fix text selection in dark mode */
+        .dark ::selection {
+            background: var(--primary) !important;
+            color: white !important;
+        }
         
         /* 动画 */
         @keyframes fade-in {

@@ -113,6 +113,11 @@
         pre code { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 13px; }
         .scrollbar-thin::-webkit-scrollbar { width: 6px; }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        /* Fix text selection in dark mode */
+        .dark ::selection {
+            background: var(--primary) !important;
+            color: white !important;
+        }
         .tag-group { border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
         .welcome-icon { font-size: 80px; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         

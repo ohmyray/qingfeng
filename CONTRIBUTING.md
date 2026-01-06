@@ -76,7 +76,7 @@ docs: 更新 README 添加移动端截图
 ```bash
 # 克隆仓库
 git clone https://github.com/wdcbot/qingfeng.git
-cd QingFeng
+cd qingfeng
 
 # 运行示例
 cd example

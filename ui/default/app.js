@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function displayVersion() {
     const footer = document.querySelector('aside > div:last-child');
     if (footer) {
-        footer.innerHTML = `Powered by <a href="https://github.com/delfDog/QingFeng" class="text-blue-500 hover:underline">青峰</a> · v${QINGFENG_VERSION}`;
+        footer.innerHTML = `Powered by <a href="https://github.com/wdcbot/qingfeng" target="_blank" class="text-blue-500 hover:underline">青峰</a> · v${QINGFENG_VERSION}`;
     }
 }
 

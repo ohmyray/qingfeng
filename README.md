@@ -9,28 +9,15 @@
 [![GitHub](https://img.shields.io/badge/GitHub-wdcbot/qingfeng-blue?logo=github)](https://github.com/wdcbot/qingfeng)
 [![Gitee](https://img.shields.io/badge/Gitee-镜像-red?logo=gitee)](https://gitee.com/xiaowan1997/qingfeng)
 
+## 🔗 在线资源
+
+- 🌐 **在线预览**: [https://wdc.zeabur.app/swagger/](https://wdc.zeabur.app/swagger/)
+- 📖 **完整文档**: [https://wdc.zeabur.app/qingfeng/qingfeng.html](https://wdc.zeabur.app/qingfeng/qingfeng.html)
+- 🚀 **快速开始**: [https://wdc.zeabur.app/qingfeng/01-quick-start.html](https://wdc.zeabur.app/qingfeng/01-quick-start.html)
+- 🔌 **多框架支持**: [https://wdc.zeabur.app/qingfeng/06-frameworks.html](https://wdc.zeabur.app/qingfeng/06-frameworks.html)
+
 ## 📸 预览
-
-### Default 主题
-![Default 主题](./screenshots/default.png)
-
-### Modern 主题
-![Modern 主题](./screenshots/modern.png)
-
-### Minimal 主题
-![Minimal 主题](./screenshots/minimal.png)
-
-### 深色模式
-![深色模式](./screenshots/dark-mode.png)
-
-### 在线调试
-![在线调试](./screenshots/debug.png)
-
-### 移动端
-| 浅色模式 | 深色模式 |
-|:--------:|:--------:|
-| ![移动端浅色](./screenshots/mobile-light.png) | ![移动端深色](./screenshots/mobile-dark.png) |
-
+[https://wdc.zeabur.app/swagger/](https://wdc.zeabur.app/swagger/)
 ## ✨ 特性
 
 - 🎨 **多主题支持** - 提供 Default、Minimal、Modern 三种 UI 风格

@@ -9,27 +9,14 @@ English | [中文](./README.md)
 [![GitHub](https://img.shields.io/badge/GitHub-wdcbot/qingfeng-blue?logo=github)](https://github.com/wdcbot/qingfeng)
 [![Gitee](https://img.shields.io/badge/Gitee-Mirror-red?logo=gitee)](https://gitee.com/xiaowan1997/qingfeng)
 
+## 🔗 Online Resources
+
+- 🌐 **Live Demo**: [https://wdc.zeabur.app/swagger/](https://wdc.zeabur.app/swagger/)
+- 📖 **Full Documentation**: [https://wdc.zeabur.app/qingfeng/qingfeng.html](https://wdc.zeabur.app/qingfeng/qingfeng.html)
+- 🚀 **Quick Start Guide**: [https://wdc.zeabur.app/qingfeng/01-quick-start.html](https://wdc.zeabur.app/qingfeng/01-quick-start.html)
+- 🔌 **Multi-Framework Support**: [https://wdc.zeabur.app/qingfeng/06-frameworks.html](https://wdc.zeabur.app/qingfeng/06-frameworks.html)
+
 ## 📸 Preview
-
-### Default Theme
-![Default Theme](./screenshots/default.png)
-
-### Modern Theme
-![Modern Theme](./screenshots/modern.png)
-
-### Minimal Theme
-![Minimal Theme](./screenshots/minimal.png)
-
-### Dark Mode
-![Dark Mode](./screenshots/dark-mode.png)
-
-### Online Debug
-![Online Debug](./screenshots/debug.png)
-
-### Mobile
-| Light Mode | Dark Mode |
-|:----------:|:---------:|
-| ![Mobile Light](./screenshots/mobile-light.png) | ![Mobile Dark](./screenshots/mobile-dark.png) |
 
 ## ✨ Features
 

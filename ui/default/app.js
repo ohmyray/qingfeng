@@ -134,26 +134,104 @@ function setupEnvironmentSelector() {
     if (!headerEl || environments.length === 0) return;
     
     const envSelector = document.createElement('div');
-    envSelector.className = 'flex items-center gap-2 mr-4';
+    envSelector.className = 'env-selector-wrapper';
     envSelector.innerHTML = `
-        <i class="fas fa-server text-sm" style="color: var(--text-secondary)"></i>
-        <select id="env-selector" onchange="switchEnvironment(this.value)" 
-                class="input-field px-3 py-1.5 rounded-lg text-sm cursor-pointer">
+        <div class="env-selector" onclick="toggleEnvDropdown(event)">
+            <i class="fas fa-globe"></i>
+            <span id="current-env-name">${environments[currentEnvIndex]?.name || '选择环境'}</span>
+            <i class="fas fa-chevron-down env-arrow"></i>
+        </div>
+        <div id="env-dropdown" class="env-dropdown hidden">
             ${environments.map((env, i) => `
-                <option value="${i}" ${i === currentEnvIndex ? 'selected' : ''}>${env.name}</option>
+                <div class="env-option ${i === currentEnvIndex ? 'active' : ''}" onclick="selectEnvironment(${i})">
+                    <i class="fas fa-check env-check"></i>
+                    <span>${env.name}</span>
+                </div>
             `).join('')}
-        </select>
+        </div>
     `;
+    
+    // 添加样式
+    if (!document.getElementById('env-selector-styles')) {
+        const style = document.createElement('style');
+        style.id = 'env-selector-styles';
+        style.textContent = `
+            .env-selector-wrapper { position: relative; margin-right: 12px; }
+            .env-selector {
+                display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+                border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+                background: var(--bg-tertiary); border: 1px solid var(--border);
+                transition: all 0.2s ease;
+            }
+            .env-selector:hover { border-color: var(--primary); background: var(--bg-secondary); }
+            .env-selector i:first-child { color: var(--primary); font-size: 12px; }
+            .env-arrow { font-size: 10px; color: var(--text-secondary); transition: transform 0.2s; }
+            .env-selector.open .env-arrow { transform: rotate(180deg); }
+            .env-dropdown {
+                position: absolute; top: calc(100% + 4px); left: 0; min-width: 160px;
+                background: var(--bg-secondary); border: 1px solid var(--border);
+                border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1000; overflow: hidden;
+            }
+            .env-option {
+                display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+                cursor: pointer; font-size: 13px; transition: background 0.15s;
+            }
+            .env-option:hover { background: var(--bg-tertiary); }
+            .env-option.active { color: var(--primary); }
+            .env-check { font-size: 10px; opacity: 0; color: var(--primary); }
+            .env-option.active .env-check { opacity: 1; }
+            @media (max-width: 768px) {
+                .env-selector-wrapper { margin-right: 8px; }
+                .env-selector { padding: 5px 10px; font-size: 12px; }
+                .env-dropdown { min-width: 140px; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
     
     const firstChild = headerEl.firstChild;
     headerEl.insertBefore(envSelector, firstChild);
+    
+    // 点击外部关闭下拉框
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.env-selector-wrapper')) {
+            closeEnvDropdown();
+        }
+    });
 }
 
-// 切换环境
-function switchEnvironment(index) {
-    currentEnvIndex = parseInt(index);
+function toggleEnvDropdown(e) {
+    e.stopPropagation();
+    const dropdown = document.getElementById('env-dropdown');
+    const selector = document.querySelector('.env-selector');
+    if (dropdown.classList.contains('hidden')) {
+        dropdown.classList.remove('hidden');
+        selector.classList.add('open');
+    } else {
+        closeEnvDropdown();
+    }
+}
+
+function closeEnvDropdown() {
+    const dropdown = document.getElementById('env-dropdown');
+    const selector = document.querySelector('.env-selector');
+    if (dropdown) dropdown.classList.add('hidden');
+    if (selector) selector.classList.remove('open');
+}
+
+function selectEnvironment(index) {
+    currentEnvIndex = index;
     saveCurrentEnvToStorage();
-    showToast(`已切换到: ${environments[currentEnvIndex].name}`);
+    
+    // 更新显示
+    document.getElementById('current-env-name').textContent = environments[index].name;
+    document.querySelectorAll('.env-option').forEach((el, i) => {
+        el.classList.toggle('active', i === index);
+    });
+    
+    closeEnvDropdown();
+    showToast(`已切换到: ${environments[index].name}`);
 }
 
 // 获取当前环境的 baseUrl
@@ -1850,8 +1928,6 @@ async function sendRequest() {
         });
         
         const duration = Date.now() - startTime;
-        const data = await res.text();
-        const size = new Blob([data]).size;
         
         // 保存响应头
         lastResponseHeaders = {};
@@ -1859,23 +1935,79 @@ async function sendRequest() {
             lastResponseHeaders[key] = value;
         });
         
+        // 检查是否是文件下载响应
+        const contentDisposition = res.headers.get('Content-Disposition');
+        const contentType = res.headers.get('Content-Type') || '';
+        const isFileDownload = isFileResponse(contentDisposition, contentType);
+        
         document.getElementById('response-info').classList.remove('hidden');
         document.getElementById('response-status').textContent = res.status;
         document.getElementById('response-status').className = `px-3 py-1 rounded text-white text-sm font-bold ${res.ok ? 'bg-green-500' : 'bg-red-500'}`;
         document.getElementById('response-time').textContent = `${duration}ms`;
-        document.getElementById('response-size').textContent = formatSize(size);
         
-        try {
-            lastResponseJson = JSON.parse(data);
-            isResponseFormatted = true;
-            const highlightedContent = syntaxHighlight(JSON.stringify(lastResponseJson, null, 2));
-            displayResponse(highlightedContent, size);
-            saveResponse(res.status, duration, highlightedContent, !res.ok);
-            if (res.ok) extractTokenFromResponse(lastResponseJson);
-        } catch {
+        if (isFileDownload && res.ok) {
+            // 文件下载处理
+            const blob = await res.blob();
+            const size = blob.size;
+            document.getElementById('response-size').textContent = formatSize(size);
+            
+            // 从 Content-Disposition 中提取文件名
+            let filename = extractFilename(contentDisposition) || 'download';
+            
+            // 获取文件图标
+            const fileIcon = getFileIcon(contentType, filename);
+            
+            // 创建下载链接
+            const downloadUrl = URL.createObjectURL(blob);
+            const fileInfo = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; max-width: 280px; margin: 0 auto;">
+                    <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; background: var(--primary);">
+                        <i class="${fileIcon}" style="font-size: 20px; color: white;"></i>
+                    </div>
+                    <p style="font-size: 14px; font-weight: 500; margin-bottom: 16px; color: var(--text-primary);">文件已准备就绪</p>
+                    <div style="width: 100%; border-radius: 8px; padding: 12px; margin-bottom: 16px; background: var(--bg-tertiary); font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border);">
+                            <span style="color: var(--text-secondary);">文件名</span>
+                            <span style="font-weight: 500; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border);">
+                            <span style="color: var(--text-secondary);">大小</span>
+                            <span style="font-weight: 500;">${formatSize(size)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                            <span style="color: var(--text-secondary);">类型</span>
+                            <span style="font-weight: 500;">${escapeHtml(getFileTypeName(contentType))}</span>
+                        </div>
+                    </div>
+                    <a href="${downloadUrl}" download="${escapeHtml(filename)}" 
+                       style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; color: white; font-weight: 500; font-size: 14px; text-decoration: none; background: var(--primary);"
+                       onclick="setTimeout(() => URL.revokeObjectURL('${downloadUrl}'), 100)">
+                        <i class="fas fa-download"></i>
+                        <span>下载文件</span>
+                    </a>
+                </div>
+            `;
+            responseContent.innerHTML = fileInfo;
+            saveResponse(res.status, duration, fileInfo, false);
             lastResponseJson = null;
-            responseContent.textContent = data;
-            saveResponse(res.status, duration, escapeHtml(data), !res.ok);
+        } else {
+            // 普通响应处理
+            const data = await res.text();
+            const size = new Blob([data]).size;
+            document.getElementById('response-size').textContent = formatSize(size);
+            
+            try {
+                lastResponseJson = JSON.parse(data);
+                isResponseFormatted = true;
+                const highlightedContent = syntaxHighlight(JSON.stringify(lastResponseJson, null, 2));
+                displayResponse(highlightedContent, size);
+                saveResponse(res.status, duration, highlightedContent, !res.ok);
+                if (res.ok) extractTokenFromResponse(lastResponseJson);
+            } catch {
+                lastResponseJson = null;
+                responseContent.textContent = data;
+                saveResponse(res.status, duration, escapeHtml(data), !res.ok);
+            }
         }
     } catch (e) {
         document.getElementById('response-info').classList.remove('hidden');
@@ -1904,6 +2036,163 @@ function setRequestLoading(loading) {
         btn.style.opacity = loading ? '0.7' : '1';
         btn.style.cursor = loading ? 'not-allowed' : 'pointer';
     }
+}
+
+// 检查响应是否是文件下载
+function isFileResponse(contentDisposition, contentType) {
+    // 检查 Content-Disposition 是否包含 attachment
+    if (contentDisposition && contentDisposition.toLowerCase().includes('attachment')) {
+        return true;
+    }
+    
+    // 检查 Content-Type 是否是二进制类型
+    const binaryTypes = [
+        'application/octet-stream',
+        'application/pdf',
+        'application/zip',
+        'application/x-zip-compressed',
+        'application/x-rar-compressed',
+        'application/x-7z-compressed',
+        'application/x-tar',
+        'application/gzip',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument',
+        'application/vnd.ms-excel',
+        'application/vnd.ms-powerpoint',
+        'image/',
+        'audio/',
+        'video/',
+    ];
+    
+    const lowerContentType = contentType.toLowerCase();
+    return binaryTypes.some(type => lowerContentType.startsWith(type));
+}
+
+// 从 Content-Disposition 中提取文件名
+function extractFilename(contentDisposition) {
+    if (!contentDisposition) return null;
+    
+    // 尝试匹配 filename*=UTF-8''xxx 格式 (RFC 5987)
+    let match = contentDisposition.match(/filename\*=(?:UTF-8''|utf-8'')([^;\s]+)/i);
+    if (match) {
+        try {
+            return decodeURIComponent(match[1]);
+        } catch (e) {
+            return match[1];
+        }
+    }
+    
+    // 尝试匹配 filename="xxx" 格式
+    match = contentDisposition.match(/filename="([^"]+)"/i);
+    if (match) {
+        return match[1];
+    }
+    
+    // 尝试匹配 filename=xxx 格式
+    match = contentDisposition.match(/filename=([^;\s]+)/i);
+    if (match) {
+        return match[1];
+    }
+    
+    return null;
+}
+
+// 根据文件类型获取图标
+function getFileIcon(contentType, filename) {
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    const type = contentType.toLowerCase();
+    
+    // 根据扩展名判断
+    const iconMap = {
+        'pdf': 'fas fa-file-pdf',
+        'doc': 'fas fa-file-word',
+        'docx': 'fas fa-file-word',
+        'xls': 'fas fa-file-excel',
+        'xlsx': 'fas fa-file-excel',
+        'ppt': 'fas fa-file-powerpoint',
+        'pptx': 'fas fa-file-powerpoint',
+        'zip': 'fas fa-file-archive',
+        'rar': 'fas fa-file-archive',
+        '7z': 'fas fa-file-archive',
+        'tar': 'fas fa-file-archive',
+        'gz': 'fas fa-file-archive',
+        'mp3': 'fas fa-file-audio',
+        'wav': 'fas fa-file-audio',
+        'mp4': 'fas fa-file-video',
+        'avi': 'fas fa-file-video',
+        'mov': 'fas fa-file-video',
+        'png': 'fas fa-file-image',
+        'jpg': 'fas fa-file-image',
+        'jpeg': 'fas fa-file-image',
+        'gif': 'fas fa-file-image',
+        'svg': 'fas fa-file-image',
+        'txt': 'fas fa-file-alt',
+        'csv': 'fas fa-file-csv',
+        'json': 'fas fa-file-code',
+        'xml': 'fas fa-file-code',
+        'html': 'fas fa-file-code',
+        'css': 'fas fa-file-code',
+        'js': 'fas fa-file-code',
+    };
+    
+    if (iconMap[ext]) return iconMap[ext];
+    
+    // 根据 Content-Type 判断
+    if (type.includes('pdf')) return 'fas fa-file-pdf';
+    if (type.includes('word') || type.includes('document')) return 'fas fa-file-word';
+    if (type.includes('excel') || type.includes('spreadsheet')) return 'fas fa-file-excel';
+    if (type.includes('powerpoint') || type.includes('presentation')) return 'fas fa-file-powerpoint';
+    if (type.includes('zip') || type.includes('compressed') || type.includes('archive')) return 'fas fa-file-archive';
+    if (type.startsWith('image/')) return 'fas fa-file-image';
+    if (type.startsWith('audio/')) return 'fas fa-file-audio';
+    if (type.startsWith('video/')) return 'fas fa-file-video';
+    if (type.startsWith('text/')) return 'fas fa-file-alt';
+    
+    return 'fas fa-file-download';
+}
+
+// 获取文件类型的友好名称
+function getFileTypeName(contentType) {
+    const type = contentType.toLowerCase();
+    
+    const typeNames = {
+        'application/pdf': 'PDF 文档',
+        'application/msword': 'Word 文档',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word 文档',
+        'application/vnd.ms-excel': 'Excel 表格',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel 表格',
+        'application/vnd.ms-powerpoint': 'PowerPoint 演示',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint 演示',
+        'application/zip': 'ZIP 压缩包',
+        'application/x-zip-compressed': 'ZIP 压缩包',
+        'application/x-rar-compressed': 'RAR 压缩包',
+        'application/x-7z-compressed': '7Z 压缩包',
+        'application/gzip': 'GZIP 压缩包',
+        'application/octet-stream': '二进制文件',
+        'image/png': 'PNG 图片',
+        'image/jpeg': 'JPEG 图片',
+        'image/gif': 'GIF 图片',
+        'image/svg+xml': 'SVG 图片',
+        'image/webp': 'WebP 图片',
+        'audio/mpeg': 'MP3 音频',
+        'audio/wav': 'WAV 音频',
+        'video/mp4': 'MP4 视频',
+        'video/webm': 'WebM 视频',
+        'text/plain': '文本文件',
+        'text/csv': 'CSV 文件',
+        'application/json': 'JSON 文件',
+        'application/xml': 'XML 文件',
+    };
+    
+    if (typeNames[type]) return typeNames[type];
+    
+    // 通用匹配
+    if (type.startsWith('image/')) return '图片文件';
+    if (type.startsWith('audio/')) return '音频文件';
+    if (type.startsWith('video/')) return '视频文件';
+    if (type.startsWith('text/')) return '文本文件';
+    
+    return contentType;
 }
 
 function formatSize(bytes) {

@@ -90,26 +90,14 @@
             font-family: 'Fira Code', 'Monaco', monospace;
         }
         .tag-group { border-bottom: 1px solid var(--border); }
-        /* Fix hover text visibility for tag groups */
-        .tag-group > div:hover {
+        /* Fix hover text visibility for tag group headers */
+        .tag-group > .tag-header:hover {
             background: var(--bg-tertiary) !important;
-            color: var(--text-primary) !important;
-            font-weight: 500;
         }
-        /* Fix hover text visibility for header buttons */
-        .desktop-header button:hover {
+        /* Fix hover background in dark mode - override Tailwind's gray-100 */
+        .dark .hover\:bg-gray-100:hover,
+        .dark .hover\:bg-gray-200:hover {
             background: var(--bg-tertiary) !important;
-            color: var(--text-primary) !important;
-        }
-        /* Fix hover text visibility for modal buttons */
-        .card button:hover {
-            background: var(--bg-tertiary) !important;
-            color: var(--text-primary) !important;
-        }
-        /* Fix hover text visibility for sidebar buttons */
-        .sidebar button:hover {
-            background: var(--bg-tertiary) !important;
-            color: var(--text-primary) !important;
         }
         .scrollbar-thin::-webkit-scrollbar { width: 6px; }
         .scrollbar-thin::-webkit-scrollbar-track { background: var(--bg-tertiary); }

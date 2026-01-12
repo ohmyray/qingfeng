@@ -72,6 +72,11 @@ func main() {
 		// 文件上传接口
 		api.POST("/upload/avatar", uploadAvatar)
 		api.POST("/upload/files", uploadFiles)
+		
+		// 文件下载接口
+		api.GET("/download/pdf", downloadPDF)
+		api.GET("/download/excel", downloadExcel)
+		api.GET("/download/image", downloadImage)
 	}
 
 	r.Run(":8080")
@@ -338,4 +343,62 @@ func uploadFiles(c *gin.Context) {
 	}
 	
 	c.JSON(http.StatusOK, Response{Code: 200, Message: "上传成功", Data: results})
+}
+
+// @Summary 下载PDF文件
+// @Description 下载示例PDF文件
+// @Tags Download
+// @Produce application/pdf
+// @Success 200 {file} file "PDF文件"
+// @Router /download/pdf [get]
+func downloadPDF(c *gin.Context) {
+	// 模拟生成一个简单的PDF内容
+	pdfContent := []byte("%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n>>\nendobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \ntrailer\n<<\n/Size 4\n/Root 1 0 R\n>>\nstartxref\n199\n%%EOF")
+	
+	c.Header("Content-Disposition", "attachment; filename=example.pdf")
+	c.Header("Content-Type", "application/pdf")
+	c.Header("Content-Length", fmt.Sprintf("%d", len(pdfContent)))
+	c.Data(http.StatusOK, "application/pdf", pdfContent)
+}
+
+// @Summary 下载Excel文件
+// @Description 下载示例Excel文件
+// @Tags Download
+// @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Param filename query string false "文件名" default(data.xlsx)
+// @Success 200 {file} file "Excel文件"
+// @Router /download/excel [get]
+func downloadExcel(c *gin.Context) {
+	filename := c.DefaultQuery("filename", "data.xlsx")
+	
+	// 模拟Excel文件内容（实际项目中应该使用excelize等库生成）
+	excelContent := []byte("PK\x03\x04 Excel mock content for testing file download")
+	
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Length", fmt.Sprintf("%d", len(excelContent)))
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelContent)
+}
+
+// @Summary 下载图片
+// @Description 下载示例图片文件
+// @Tags Download
+// @Produce image/png
+// @Success 200 {file} file "图片文件"
+// @Router /download/image [get]
+func downloadImage(c *gin.Context) {
+	// 1x1 透明PNG图片
+	pngContent := []byte{
+		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+		0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+		0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+		0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+		0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+	}
+	
+	c.Header("Content-Disposition", "attachment; filename=example.png")
+	c.Header("Content-Type", "image/png")
+	c.Header("Content-Length", fmt.Sprintf("%d", len(pngContent)))
+	c.Data(http.StatusOK, "image/png", pngContent)
 }

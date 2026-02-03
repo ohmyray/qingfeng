@@ -17,40 +17,29 @@ import (
 func main() {
 	r := gin.Default()
 
-	// Register QingFeng documentation UI (注册青锋文档 UI)
-	// 可选主题: qingfeng.ThemeDefault, qingfeng.ThemeMinimal, qingfeng.ThemeModern
-	persistParams := false
+	// 注册青锋文档 UI
+	// 方式1: 使用内置生成器（推荐，零依赖）
 	r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
-		Title:         "示例项目 API",
-		Description:   "这是一个示例项目的API文档",
-		Version:       "1.0.0",
-		BasePath:      "/doc",
-		DocPath:       "./docs/swagger.json",
-		EnableDebug:   true,
-		DarkMode:      false,
-		AutoGenerate:  true,                  // 启动时自动生成 swagger 文档
-		UITheme:       qingfeng.ThemeDefault, // UI 主题: ThemeDefault, ThemeMinimal, ThemeModern
-		PersistParams: &persistParams,        // 是否保存调试参数到 sessionStorage（默认 true）
-		
-		// 自定义 swag init 参数（可选）
-		// SwagArgs: []string{"--parseDependency", "--parseInternal"},
-		
-		// 自定义 Logo（可选）
-		// Logo:     "https://example.com/logo.png",
-		// LogoLink: "https://example.com",
-		
+		Title:        "示例项目 API",
+		Description:  "这是一个示例项目的 API 文档 - 使用内置生成器自动生成 OpenAPI 3.0",
+		Version:      "2.0.0",
+		BasePath:     "/doc",
+		AutoGenerate: true, // 启用内置生成器，无需安装 swag CLI
+		EnableDebug:  true,
+		UITheme:      qingfeng.ThemeModern,
+
 		// 多环境配置（可选）
 		Environments: []qingfeng.Environment{
 			{Name: "本地开发", BaseURL: "/api/v1"},
 			{Name: "测试环境", BaseURL: "https://test-api.example.com/api/v1"},
 			{Name: "生产环境", BaseURL: "https://api.example.com/api/v1"},
 		},
-		
-		// 全局请求头（可选）
-		// GlobalHeaders: []qingfeng.Header{
-		// 	{Key: "Authorization", Value: "Bearer your-token"},
-		// },
 	}))
+
+	// 方式2: 使用已有的 swagger.json 文件
+	// r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
+	// 	DocPath: "./docs/swagger.json",
+	// }))
 
 	// API routes
 	api := r.Group("/api/v1")

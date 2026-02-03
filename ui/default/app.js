@@ -239,7 +239,17 @@ function getCurrentBaseUrl() {
     if (environments.length > 0 && environments[currentEnvIndex]) {
         return environments[currentEnvIndex].baseUrl;
     }
+    // 支持 OpenAPI 3.0 的 servers 字段
+    if (swaggerData?.servers && swaggerData.servers.length > 0) {
+        return swaggerData.servers[0].url || '';
+    }
+    // 支持 Swagger 2.0 的 basePath 字段
     return swaggerData?.basePath || '';
+}
+
+// 检测文档格式
+function isOpenAPI3() {
+    return swaggerData?.openapi && swaggerData.openapi.startsWith('3.');
 }
 
 // 保存当前环境到 storage
@@ -604,7 +614,13 @@ function renderResponseSchema(api) {
     let html = '';
     
     for (const [code, response] of Object.entries(api.responses)) {
-        const schema = response.schema;
+        // 支持 OpenAPI 3.0 的 content 格式和 Swagger 2.0 的 schema 格式
+        let schema = response.schema;
+        if (!schema && response.content) {
+            // OpenAPI 3.0 格式
+            const jsonContent = response.content['application/json'] || response.content['*/*'] || Object.values(response.content)[0];
+            schema = jsonContent?.schema;
+        }
         const description = response.description || '';
         
         html += `

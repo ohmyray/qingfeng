@@ -18,6 +18,14 @@
 
 ## 📸 预览
 [https://wdc.zeabur.app/swagger/](https://wdc.zeabur.app/swagger/)
+
+## 🆕 v2.0.0 新特性
+
+- 🚀 **内置文档生成器** - 无需安装 swag CLI，零外部依赖
+- 📄 **OpenAPI 3.0/3.1 支持** - 自动生成现代化的 OpenAPI 3.x 规范文档
+- ⚡ **一行代码启用** - 只需设置 `AutoGenerate: true`，文档自动生成
+- 🔄 **完全向后兼容** - 现有用户无需修改任何代码
+
 ## ✨ 特性
 
 - 🎨 **多主题支持** - 提供 Default、Minimal、Modern 三种 UI 风格
@@ -27,13 +35,61 @@
 - 🐛 **在线调试** - 内置 API 调试工具，类似 Postman
 - 🔑 **全局请求头** - 支持配置全局 Headers（如 Authorization）
 - 🪄 **Token 自动提取** - 从响应中自动提取 Token 设置到全局参数
-- 🔄 **自动生成文档** - 启动时自动运行 swag init
+- 🔄 **内置文档生成** - 无需安装 swag，启动时自动生成 OpenAPI 3.0 文档
 - 📦 **零依赖前端** - 使用 embed.FS 内嵌，无需额外部署
 - 🚀 **简单集成** - 一行代码接入现有项目
 - 📱 **移动端适配** - 完美支持手机访问，侧边栏抽屉式交互
 - 💾 **设置持久化** - 主题、UI 风格、全局参数自动保存到本地
 - ✨ **JSON 语法高亮** - 响应结果彩色高亮显示
 - 🔌 **多框架支持** - 原生支持 Gin，其他框架可通过标准 http.Handler 适配
+
+## 🚀 极简使用（推荐）
+
+**v2.0.0 新增：内置文档生成器，无需安装任何外部工具！**
+
+```go
+package main
+
+import (
+    "github.com/gin-gonic/gin"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+// @title 我的 API
+// @version 1.0
+// @description 这是我的 API
+// @host localhost:8080
+// @BasePath /api
+
+func main() {
+    r := gin.Default()
+
+    // 一行代码启用文档 - 自动生成 OpenAPI 3.0
+    r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
+        Title:        "我的 API",
+        AutoGenerate: true, // 内置生成器，无需安装 swag CLI
+    }))
+
+    // API 路由
+    r.GET("/api/hello", hello)
+    r.Run(":8080")
+}
+
+// @Summary 打招呼
+// @Tags 示例
+// @Success 200 {string} string "Hello World"
+// @Router /hello [get]
+func hello(c *gin.Context) {
+    c.JSON(200, gin.H{"message": "Hello World"})
+}
+```
+
+**就这么简单！** 用户只需要：
+1. `go get github.com/wdcbot/qingfeng`
+2. 写注释
+3. 启动服务
+
+无需安装 swag CLI，无需运行 `swag init`，文档自动生成！
 
 ## 🔄 无侵入替换
 
@@ -55,12 +111,16 @@ import swaggerFiles "github.com/swaggo/files"
 import ginSwagger "github.com/swaggo/gin-swagger"
 r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-// 替换后 (青峰Swag)
+// 替换后 (青峰Swag) - 方式1：使用内置生成器（推荐）
 import qingfeng "github.com/wdcbot/qingfeng"
 r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
-    Title:   "我的 API",
-    BasePath: "/doc",
-    DocPath:  "./docs/swagger.json",
+    Title:        "我的 API",
+    AutoGenerate: true, // 内置生成器，无需 swag CLI
+}))
+
+// 替换后 (青峰Swag) - 方式2：使用已有的 swagger.json
+r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
+    DocPath: "./docs/swagger.json", // 兼容 Swagger 2.0 和 OpenAPI 3.0
 }))
 ```
 
@@ -68,8 +128,6 @@ r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
 - ✅ 原有的 swag 注释（@Summary、@Router 等）
 - ✅ 已生成的 docs 目录（swagger.json、swagger.yaml）
 - ✅ 业务代码
-
-青峰Swag 直接读取 `swagger.json` 文件，与 swag 工具完全兼容。
 
 ---
 
@@ -88,7 +146,7 @@ go mod init myapi
 go get github.com/gin-gonic/gin
 go get github.com/wdcbot/qingfeng@latest
 # 国内镜像: go get gitee.com/xiaowan1997/qingfeng@latest
-go install github.com/swaggo/swag/cmd/swag@latest
+# 注意：v2.0.0 起无需安装 swag CLI！
 ```
 
 ### 3. 创建 main.go
@@ -110,13 +168,10 @@ import (
 func main() {
     r := gin.Default()
 
-    // 注册文档 UI
+    // 注册文档 UI（内置生成器，无需 swag CLI）
     r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
-        Title:    "青峰API--wdc",
-        BasePath: "/doc",
-        DocPath:  "./docs/swagger.json",
-        AutoGenerate: true, // 启动时自动运行 swag init 生成文档 默认false
-
+        Title:        "我的 API",
+        AutoGenerate: true, // 启用内置生成器
     }))
 
     // API 路由
@@ -134,7 +189,7 @@ func hello(c *gin.Context) {
 }
 ```
 
-### 3.1 完整的配置说明（只是说明可 步骤3即可正常运行）
+### 3.1 完整的配置说明
 ```go
 r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
     // 文档标题
@@ -145,47 +200,51 @@ r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
     Version: "1.0.0",
     // 文档路由前缀
     BasePath: "/doc",
-    // swagger.json 文件路径
-    DocPath: "./docs/swagger.json",
-    // 直接传入 swagger JSON 内容（与 DocPath 二选一）
+    
+    // ===== 文档来源（三选一）=====
+    // 方式1：启用内置生成器（推荐，无需安装 swag CLI）
+    AutoGenerate: true,
+    // 方式2：指定文档文件路径（支持 Swagger 2.0 和 OpenAPI 3.0）
+    // DocPath: "./docs/swagger.json",
+    // 方式3：直接传入文档 JSON 内容
     // DocJSON: []byte{},
+    
+    // ===== UI 配置 =====
     // 是否启用在线调试
     EnableDebug: true,
     // 是否默认深色模式
     DarkMode: false,
     // UI 主题风格: ThemeDefault(默认) / ThemeMinimal(简约) / ThemeModern(现代)
-    UITheme: qingfeng.ThemeDefault,
+    UITheme: qingfeng.ThemeModern,
+    
+    // ===== 高级配置 =====
     // 全局请求头配置
     GlobalHeaders: []qingfeng.Header{
         {Key: "Authorization", Value: "Bearer your-token"},
-        // {Key: "X-API-Key", Value: "your-api-key"},
     },
-    // 启动时自动运行 swag init 生成文档
-    AutoGenerate: true,
-    // swag 搜索目录（AutoGenerate 为 true 时生效）
-    SwagSearchDir: ".",
-    // swagger 文件输出目录（AutoGenerate 为 true 时生效）
-    SwagOutputDir: "./docs",
-    
-    // 自定义 Logo（v1.3.0 新增）
-    Logo: "https://example.com/logo.png",  // 支持 URL 或 base64
-    LogoLink: "https://example.com",       // Logo 点击跳转链接
-    
-    // 多环境配置（v1.3.0 新增）
+    // 自定义 Logo
+    Logo: "https://example.com/logo.png",
+    LogoLink: "https://example.com",
+    // 多环境配置
     Environments: []qingfeng.Environment{
         {Name: "本地开发", BaseURL: "/api/v1"},
         {Name: "测试环境", BaseURL: "https://test-api.example.com/api/v1"},
         {Name: "生产环境", BaseURL: "https://api.example.com/api/v1"},
     },
+    
+    // ===== 生成器配置（AutoGenerate: true 时生效）=====
+    // 搜索目录
+    SwagSearchDir: ".",
+    // 输出目录
+    SwagOutputDir: "./docs",
 }))
-
 ```
 
-### 4. 生成文档并运行
+### 4. 运行
 
 ```bash
-swag init
 go run main.go
+# 无需运行 swag init！文档自动生成
 ```
 
 ### 5. 访问文档
@@ -209,14 +268,8 @@ func main() {
 
     // 注册青峰Swag文档 UI
     r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
-        Title:       "我的 API",
-        Description: "API 文档描述",
-        Version:     "1.0.0",
-        BasePath:    "/doc",
-        DocPath:     "./docs/swagger.json",
-        EnableDebug: true,
-        DarkMode:    false,
-        UITheme:     qingfeng.ThemeDefault, // 可选: ThemeDefault, ThemeMinimal, ThemeModern
+        Title:        "我的 API",
+        AutoGenerate: true,  // 内置生成器
     }))
 
     r.Run(":8080")
@@ -224,6 +277,151 @@ func main() {
 ```
 
 访问 `http://localhost:8080/doc/` 查看文档。
+
+---
+
+## 🔌 多框架支持
+
+青峰Swag 通过 `HTTPHandler` 返回标准的 `http.Handler`，**支持所有 Go Web 框架**：
+
+### 标准库 net/http
+
+```go
+package main
+
+import (
+    "net/http"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    // 使用 HTTPHandler 返回标准 http.Handler
+    http.Handle("/doc/", qingfeng.HTTPHandler(qingfeng.Config{
+        Title:        "My API",
+        BasePath:     "/doc",
+        AutoGenerate: true,
+    }))
+    
+    http.HandleFunc("/api/hello", func(w http.ResponseWriter, r *http.Request) {
+        w.Write([]byte(`{"message": "Hello World"}`))
+    })
+    
+    http.ListenAndServe(":8080", nil)
+}
+```
+
+### Echo
+
+```go
+package main
+
+import (
+    "github.com/labstack/echo/v4"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    e := echo.New()
+    
+    // Echo 使用 WrapHandler 包装
+    e.GET("/doc/*", echo.WrapHandler(qingfeng.HTTPHandler(qingfeng.Config{
+        Title:        "My API",
+        BasePath:     "/doc",
+        AutoGenerate: true,
+    })))
+    
+    e.GET("/api/hello", func(c echo.Context) error {
+        return c.JSON(200, map[string]string{"message": "Hello World"})
+    })
+    
+    e.Start(":8080")
+}
+```
+
+### Fiber
+
+```go
+package main
+
+import (
+    "github.com/gofiber/fiber/v2"
+    "github.com/gofiber/fiber/v2/middleware/adaptor"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    app := fiber.New()
+    
+    // Fiber 使用 adaptor.HTTPHandler 包装
+    app.Use("/doc", adaptor.HTTPHandler(qingfeng.HTTPHandler(qingfeng.Config{
+        Title:        "My API",
+        BasePath:     "/doc",
+        AutoGenerate: true,
+    })))
+    
+    app.Get("/api/hello", func(c *fiber.Ctx) error {
+        return c.JSON(fiber.Map{"message": "Hello World"})
+    })
+    
+    app.Listen(":8080")
+}
+```
+
+### Chi
+
+```go
+package main
+
+import (
+    "net/http"
+    "github.com/go-chi/chi/v5"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    r := chi.NewRouter()
+    
+    // Chi 直接使用 Handle
+    r.Handle("/doc/*", qingfeng.HTTPHandler(qingfeng.Config{
+        Title:        "My API",
+        BasePath:     "/doc",
+        AutoGenerate: true,
+    }))
+    
+    r.Get("/api/hello", func(w http.ResponseWriter, r *http.Request) {
+        w.Write([]byte(`{"message": "Hello World"}`))
+    })
+    
+    http.ListenAndServe(":8080", r)
+}
+```
+
+### Gin（便捷方法）
+
+```go
+package main
+
+import (
+    "github.com/gin-gonic/gin"
+    qingfeng "github.com/wdcbot/qingfeng"
+)
+
+func main() {
+    r := gin.Default()
+    
+    // Gin 可以直接使用 Handler（内部调用 HTTPHandler）
+    r.GET("/doc/*any", qingfeng.Handler(qingfeng.Config{
+        Title:        "My API",
+        AutoGenerate: true,
+    }))
+    
+    r.Run(":8080")
+}
+```
+
+> 💡 **核心原理**：`qingfeng.HTTPHandler()` 返回标准的 `http.Handler` 接口，任何支持标准库的框架都可以使用。
+
+---
 
 ## 🎨 UI 主题
 
@@ -257,18 +455,20 @@ func main() {
 | Description | string | "" | 文档描述 |
 | Version | string | "1.0.0" | API 版本 |
 | BasePath | string | "/doc" | 文档路由前缀 |
-| DocPath | string | "./docs/swagger.json" | swagger.json 文件路径 |
-| DocJSON | []byte | nil | 直接传入 swagger JSON 内容 |
+| **AutoGenerate** | bool | false | **启用内置生成器（推荐，无需 swag CLI）** |
+| DocPath | string | "" | 文档文件路径（支持 Swagger 2.0 和 OpenAPI 3.0） |
+| DocJSON | []byte | nil | 直接传入文档 JSON 内容 |
 | EnableDebug | bool | true | 是否启用在线调试 |
 | DarkMode | bool | false | 是否默认深色模式 |
 | UITheme | UITheme | ThemeDefault | UI 主题风格 |
 | GlobalHeaders | []Header | nil | 全局请求头配置 |
-| AutoGenerate | bool | false | 启动时自动运行 swag init |
-| SwagSearchDir | string | "." | swag 搜索目录 |
-| SwagOutputDir | string | "./docs" | swagger 文件输出目录 |
+| SwagSearchDir | string | "." | 搜索目录（AutoGenerate 时生效） |
+| SwagOutputDir | string | "./docs" | 输出目录（AutoGenerate 时生效） |
 | Logo | string | "" | 自定义 Logo URL 或 base64 |
 | LogoLink | string | "" | Logo 点击跳转链接 |
 | Environments | []Environment | nil | 多环境配置 |
+
+> 💡 **文档来源优先级**：`DocJSON` > `DocPath` > `AutoGenerate`
 
 ## 🐳 Docker 部署（推荐）
 

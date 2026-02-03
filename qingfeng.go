@@ -1,5 +1,12 @@
 // Package qingfeng provides a beautiful Swagger UI replacement for Go web frameworks
 // 青锋 - 青出于蓝，锋芒毕露
+//
+// 特性:
+//   - 内置 OpenAPI 3.0 文档生成器，零外部依赖
+//   - 支持 Swagger 2.0 和 OpenAPI 3.0/3.1 文档
+//   - 多主题支持（default, minimal, modern）
+//   - 在线调试、深色模式、多环境切换
+//   - 兼容所有 Go Web 框架（Gin, Echo, Fiber, Chi 等）
 package qingfeng
 
 import (
@@ -9,14 +16,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 // Version is the current version of QingFeng
-const Version = "1.6.1"
+const Version = "2.0.0"
 
 //go:embed ui/default/* ui/minimal/* ui/modern/* ui/assets/css/* ui/assets/webfonts/*
 var uiFS embed.FS
@@ -52,23 +58,28 @@ type Environment struct {
 	BaseURL string `json:"baseUrl"`
 }
 
-// Config holds the configuration for knife4j UI
+// Config holds the configuration for QingFeng UI
+// 青锋配置
 type Config struct {
-	// Title of the API documentation
+	// Title of the API documentation (API 文档标题)
 	Title string
-	// Description of the API
+	// Description of the API (API 描述)
 	Description string
-	// Version of the API
+	// Version of the API (API 版本)
 	Version string
-	// BasePath prefix for the documentation routes
+	// Host is the server host for documentation URL display (服务地址，用于显示文档 URL)
+	// 例如: "localhost:8080" 或 "api.example.com"
+	Host string
+	// BasePath prefix for the documentation routes (文档路由前缀，默认 /doc)
 	BasePath string
-	// DocPath is the path to swagger.json file (swagger.json 文件路径)
+	// DocPath is the path to swagger.json/openapi.json file (文档文件路径)
+	// 支持 Swagger 2.0 和 OpenAPI 3.0 格式
 	DocPath string
-	// DocJSON allows passing swagger spec directly as JSON bytes
+	// DocJSON allows passing swagger spec directly as JSON bytes (直接传入文档 JSON)
 	DocJSON []byte
-	// EnableDebug enables the API debug/testing feature
+	// EnableDebug enables the API debug/testing feature (启用在线调试功能)
 	EnableDebug bool
-	// DarkMode enables dark theme by default
+	// DarkMode enables dark theme by default (默认启用深色模式)
 	DarkMode bool
 	// PersistParams enables saving debug parameters to sessionStorage (default: true)
 	// 是否将调试参数保存到 sessionStorage（默认: true）
@@ -76,16 +87,17 @@ type Config struct {
 	// GlobalHeaders are custom headers that will be sent with every API request
 	// 全局请求头，会在每个 API 请求中自动添加
 	GlobalHeaders []Header
-	// AutoGenerate automatically runs swag init on startup (启动时自动生成 swagger 文档)
+	// AutoGenerate automatically generates API documentation on startup
+	// 启动时自动生成 API 文档（使用内置生成器，无需安装 swag CLI）
 	AutoGenerate bool
 	// SwagSearchDir is the directory to search for swagger comments (default: ".")
-	// swag 搜索目录，默认为当前目录
+	// 搜索目录，默认为当前目录
 	SwagSearchDir string
-	// SwagOutputDir is the output directory for swagger files (default: "./docs")
-	// swagger 文件输出目录，默认为 ./docs
+	// SwagOutputDir is the output directory for generated files (default: "./docs")
+	// 输出目录，默认为 ./docs
 	SwagOutputDir string
-	// SwagArgs is additional arguments for swag init command
-	// swag init 的额外参数，如 []string{"--parseDependency", "--parseInternal"}
+	// SwagArgs is deprecated, use AutoGenerate instead
+	// Deprecated: 已废弃，内置生成器不需要额外参数
 	SwagArgs []string
 	// UITheme selects the UI theme: "default", "minimal", "modern" (UI 主题选择)
 	UITheme UITheme
@@ -102,10 +114,9 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Title:       "API Documentation",
-		Description: "API Documentation powered by wdc (青锋)",
+		Description: "API Documentation powered by QingFeng (青锋)",
 		Version:     "1.0.0",
 		BasePath:    "/doc",
-		DocPath:     "./docs/swagger.json",
 		EnableDebug: true,
 		DarkMode:    false,
 	}
@@ -129,7 +140,7 @@ func RegisterRoutes(router *gin.RouterGroup, cfg Config) {
 
 // HTTPHandler returns a standard http.Handler for use with any Go web framework
 // 返回标准 http.Handler，可用于任何 Go Web 框架
-// 
+//
 // 使用示例:
 //   - 标准库: http.Handle("/doc/", qingfeng.HTTPHandler(cfg))
 //   - Echo: e.GET("/doc/*", echo.WrapHandler(qingfeng.HTTPHandler(cfg)))
@@ -139,14 +150,30 @@ func HTTPHandler(cfg Config) http.Handler {
 	if cfg.BasePath == "" {
 		cfg.BasePath = "/doc"
 	}
-	if cfg.DocPath == "" {
-		cfg.DocPath = "./docs/swagger.json"
+
+	// 获取文档 JSON（优先级：DocJSON > DocPath > 自动生成）
+	var specJSON []byte
+	var docSource string
+	if cfg.DocJSON != nil {
+		specJSON = cfg.DocJSON
+		docSource = "DocJSON"
+	} else if cfg.DocPath != "" {
+		if data, err := os.ReadFile(cfg.DocPath); err == nil {
+			specJSON = data
+			docSource = cfg.DocPath
+		}
 	}
 
-	// Auto generate swagger docs if enabled
-	if cfg.AutoGenerate {
-		generateSwaggerDocs(cfg)
+	// 如果启用自动生成且没有文档，则生成
+	if cfg.AutoGenerate && specJSON == nil {
+		if data, err := generateSpec(cfg); err == nil {
+			specJSON = data
+			docSource = "AutoGenerate (OpenAPI 3.0)"
+		}
 	}
+
+	// 打印启动信息
+	printBanner(cfg, docSource)
 
 	// Prepare file servers for each theme
 	defaultFS, _ := fs.Sub(uiFS, "ui/default")
@@ -210,20 +237,23 @@ func HTTPHandler(cfg Config) http.Handler {
 			theme = defaultTheme
 		}
 
-		// Serve swagger.json
-		if path == "/swagger.json" || path == "/api-docs" || path == "/doc.json" {
+		// Serve swagger.json / openapi.json
+		if path == "/swagger.json" || path == "/openapi.json" || path == "/api-docs" || path == "/doc.json" {
 			w.Header().Set("Content-Type", "application/json")
-			if cfg.DocJSON != nil {
-				w.Write(cfg.DocJSON)
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			if specJSON != nil {
+				w.Write(specJSON)
 				return
 			}
-			data, err := os.ReadFile(cfg.DocPath)
-			if err != nil {
-				w.WriteHeader(http.StatusNotFound)
-				w.Write([]byte(`{"error": "swagger.json not found"}`))
-				return
+			// 尝试从文件读取
+			if cfg.DocPath != "" {
+				if data, err := os.ReadFile(cfg.DocPath); err == nil {
+					w.Write(data)
+					return
+				}
 			}
-			w.Write(data)
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"error": "API documentation not found. Enable AutoGenerate or provide DocPath/DocJSON."}`))
 			return
 		}
 
@@ -247,46 +277,47 @@ func HTTPHandler(cfg Config) http.Handler {
 	})
 }
 
-// generateSwaggerDocs runs swag init to generate swagger documentation
-// 运行 swag init 生成 swagger 文档
-func generateSwaggerDocs(cfg Config) {
-	// Check if swag is installed
-	_, err := exec.LookPath("swag")
-	if err != nil {
-		log.Println("[QingFeng] swag command not found, skipping auto-generation. Install with: go install github.com/swaggo/swag/cmd/swag@latest")
-		log.Println("[QingFeng] swag 未找到, 跳过更新Swagger. 安装命令: go install github.com/swaggo/swag/cmd/swag@latest")
-		return
+// printBanner 打印启动信息
+func printBanner(cfg Config, docSource string) {
+	title := cfg.Title
+	if title == "" {
+		title = "API Documentation"
 	}
 
-	searchDir := cfg.SwagSearchDir
-	if searchDir == "" {
-		searchDir = "."
+	// 构建文档 URL
+	var docURL string
+	basePath := cfg.BasePath
+	if !strings.HasSuffix(basePath, "/") {
+		basePath += "/"
+	}
+	if cfg.Host != "" {
+		scheme := "http://"
+		if strings.HasPrefix(cfg.Host, "https://") || strings.HasPrefix(cfg.Host, "http://") {
+			docURL = cfg.Host + basePath
+		} else {
+			docURL = scheme + cfg.Host + basePath
+		}
+	} else {
+		docURL = "http://localhost:<port>" + basePath
 	}
 
-	outputDir := cfg.SwagOutputDir
-	if outputDir == "" {
-		outputDir = "./docs"
+	log.Println("")
+	log.Println("┌──────────────────────────────────────────────────────────┐")
+	log.Println("│                       🗡️  QingFeng                        │")
+	log.Println("├──────────────────────────────────────────────────────────┤")
+	log.Printf("│  📄 Title:  %-45s │\n", truncateString(title, 45))
+	log.Printf("│  📂 Source: %-45s │\n", truncateString(docSource, 45))
+	log.Printf("│  🌐 URL:    %-45s │\n", truncateString(docURL, 45))
+	log.Println("├──────────────────────────────────────────────────────────┤")
+	log.Println("│  Swagger UI is ready! Open the URL above in browser.    │")
+	log.Println("└──────────────────────────────────────────────────────────┘")
+	log.Println("")
+}
+
+// truncateString 截断字符串
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
 	}
-
-	log.Println("[QingFeng] Auto-generating swagger docs...")
-
-	// Build command arguments
-	args := []string{"init", "-d", searchDir, "-o", outputDir}
-	
-	// Append custom arguments
-	if len(cfg.SwagArgs) > 0 {
-		args = append(args, cfg.SwagArgs...)
-		log.Printf("[QingFeng] Using custom swag args: %v\n", cfg.SwagArgs)
-	}
-
-	cmd := exec.Command("swag", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		log.Printf("[QingFeng] Failed to generate swagger docs: %v\n", err)
-		return
-	}
-
-	log.Println("[QingFeng] Swagger docs generated successfully!")
+	return s[:maxLen-3] + "..."
 }

@@ -22,7 +22,7 @@ import (
 )
 
 // Version is the current version of QingFeng
-const Version = "2.0.0"
+const Version = "1.1.0"
 
 //go:embed ui/default/* ui/minimal/* ui/modern/* ui/assets/css/* ui/assets/webfonts/*
 var uiFS embed.FS

@@ -85,7 +85,7 @@ func hello(c *gin.Context) {
 ```
 
 **就这么简单！** 用户只需要：
-1. `go get github.com/wdcbot/qingfeng`
+1. `go get github.com/wdcbot/qingfeng@latest`
 2. 写注释
 3. 启动服务
 
@@ -99,7 +99,7 @@ func hello(c *gin.Context) {
 
 1. 安装青峰Swag：
 ```bash
-go get github.com/wdcbot/qingfeng
+go get github.com/wdcbot/qingfeng@latest
 # 国内镜像: go get gitee.com/xiaowan1997/qingfeng
 ```
 

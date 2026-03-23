@@ -1,6 +1,6 @@
 // QingFeng Swagger Frontend Application
 // 版本号从后端注入
-let QINGFENG_VERSION = '1.3.0';
+let QINGFENG_VERSION = '1.6.7';
 
 let swaggerData = null;
 let currentApi = null;
@@ -742,7 +742,7 @@ function renderSchemaModel(schema, depth = 0, parentKey = '') {
             // 递归渲染嵌套对象
             if (prop.type === 'object' || prop.properties || prop.$ref || prop.allOf) {
                 html += `<div class="ml-4">${renderSchemaModel(prop, depth + 1, key)}</div>`;
-            } else if (prop.type === 'array' && prop.items && (prop.items.type === 'object' || prop.items.properties || prop.items.$ref)) {
+            } else if (prop.type === 'array' && prop.items && (prop.items.type === 'object' || prop.items.properties || prop.items.$ref || prop.items.allOf)) {
                 html += `<div class="ml-4 pl-2 border-l" style="border-color: var(--border)">
                     <div class="text-xs py-1" style="color: var(--text-secondary)">数组元素:</div>
                     ${renderSchemaModel(prop.items, depth + 1, key)}

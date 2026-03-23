@@ -22,7 +22,7 @@ import (
 )
 
 // Version is the current version of QingFeng
-const Version = "1.6.6"
+const Version = "1.6.7"
 
 //go:embed ui/default/* ui/minimal/* ui/modern/* ui/assets/css/* ui/assets/webfonts/*
 var uiFS embed.FS
@@ -314,10 +314,11 @@ func printBanner(cfg Config, docSource string) {
 	log.Println("")
 }
 
-// truncateString 截断字符串
+// truncateString 截断字符串（按字符而非字节，正确处理中文）
 func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
+	r := []rune(s)
+	if len(r) <= maxLen {
 		return s
 	}
-	return s[:maxLen-3] + "..."
+	return string(r[:maxLen-3]) + "..."
 }

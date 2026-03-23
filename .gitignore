@@ -34,3 +34,6 @@ example/docs/
 
 # Personal scripts
 sync.sh
+
+# Go build binary
+example/example

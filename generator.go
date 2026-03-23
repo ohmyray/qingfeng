@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/swaggo/swag/v2"
 	"github.com/swaggo/swag/v2/gen"
 )
 

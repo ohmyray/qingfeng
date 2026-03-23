@@ -682,11 +682,14 @@ function renderSchemaModel(schema, depth = 0, parentKey = '') {
     
     // 处理 allOf
     if (schema.allOf) {
-        let merged = { type: 'object', properties: {} };
+        let merged = { type: 'object', properties: {}, required: [] };
         for (const subSchema of schema.allOf) {
             const resolved = resolveSchema(subSchema);
             if (resolved.properties) {
                 merged.properties = { ...merged.properties, ...resolved.properties };
+            }
+            if (resolved.required) {
+                merged.required = [...merged.required, ...resolved.required];
             }
         }
         return renderSchemaModel(merged, depth, parentKey);
@@ -737,7 +740,7 @@ function renderSchemaModel(schema, depth = 0, parentKey = '') {
             `;
             
             // 递归渲染嵌套对象
-            if (prop.type === 'object' || prop.properties || prop.$ref) {
+            if (prop.type === 'object' || prop.properties || prop.$ref || prop.allOf) {
                 html += `<div class="ml-4">${renderSchemaModel(prop, depth + 1, key)}</div>`;
             } else if (prop.type === 'array' && prop.items && (prop.items.type === 'object' || prop.items.properties || prop.items.$ref)) {
                 html += `<div class="ml-4 pl-2 border-l" style="border-color: var(--border)">
@@ -756,9 +759,23 @@ function renderSchemaModel(schema, depth = 0, parentKey = '') {
 }
 
 function resolveSchema(schema) {
+    if (!schema) return {};
     if (schema.$ref) {
         const refPath = schema.$ref.replace('#/definitions/', '').replace('#/components/schemas/', '');
         return swaggerData.definitions?.[refPath] || swaggerData.components?.schemas?.[refPath] || {};
+    }
+    if (schema.allOf) {
+        let merged = { type: 'object', properties: {}, required: [] };
+        for (const subSchema of schema.allOf) {
+            const resolved = resolveSchema(subSchema);
+            if (resolved.properties) {
+                merged.properties = { ...merged.properties, ...resolved.properties };
+            }
+            if (resolved.required) {
+                merged.required = [...merged.required, ...resolved.required];
+            }
+        }
+        return merged;
     }
     return schema;
 }
@@ -781,7 +798,7 @@ function getSchemaType(schema) {
 }
 
 function generateExample(schema, depth = 0) {
-    if (depth > 5) return {};
+    if (depth > 10) return {};
     
     if (schema.$ref) {
         const refPath = schema.$ref.replace('#/definitions/', '').replace('#/components/schemas/', '');

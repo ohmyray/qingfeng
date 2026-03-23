@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.6] - 2026-03-23
+
+### Fixed
+- 🐛 **修复嵌套 allOf 响应解析** - 修复 OpenAPI 3.0 中嵌套 allOf + $ref 组合的响应 schema 无法正确解析的问题
+  - `resolveSchema` 新增 allOf 递归解析支持
+  - `renderSchemaModel` 属性递归渲染条件增加 `allOf` 判断
+  - `generateExample` 深度限制从 5 提升到 10，避免嵌套 allOf 被截断
+  - 三个主题（default/minimal/modern）同步修复
+- 🔧 **修复编译错误** - 移除 `generator.go` 中未使用的 `github.com/swaggo/swag/v2` import，解决用户编译失败问题
+
 ## [1.6.1] - 2026-01-06
 
 ### Added
